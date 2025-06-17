@@ -1,5 +1,9 @@
 # Prerequisites
 *.d
+.mypy_cache/    
+*.model
+*.vocab
+*.exe
 
 # Compiled Object files
 *.slo
