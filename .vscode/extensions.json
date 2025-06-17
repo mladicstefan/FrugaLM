@@ -22,8 +22,6 @@
         // ===== Git & Version Control =====
         "eamodio.gitlens",
         "github.vscode-pull-request-github",
-        "github.copilot",
-        "github.copilot-chat",
         
         // ===== Data & Configuration =====
         "redhat.vscode-yaml",
