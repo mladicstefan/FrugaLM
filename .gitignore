@@ -4,7 +4,7 @@
 *.model
 *.vocab
 *.exe
-
+/dependencies
 # Compiled Object files
 *.slo
 *.lo

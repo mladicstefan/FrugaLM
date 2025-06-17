@@ -8,6 +8,9 @@ LIBS = -lsentencepiece -lsentencepiece_train -pthread
 # Target executable
 TARGET = trainer.exe
 SOURCE = train.cpp
+TOKENIZER_SOURCE = tokenizer.cpp
+TOKENIZER_TARGET = tokenizer.exe
+
 
 # Default target
 all: $(TARGET)
@@ -16,14 +19,22 @@ all: $(TARGET)
 $(TARGET): $(SOURCE)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TARGET) $(SOURCE) $(LIBDIR) $(LIBS)
 
+# Compile the tokenizer program
+$(TOKENIZER_TARGET): $(TOKENIZER_SOURCE) tokenizer.hpp
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TOKENIZER_TARGET) $(TOKENIZER_SOURCE) $(LIBDIR) $(LIBS)
+
 # Run the training to generate model files
 train: $(TARGET)
 	./$(TARGET)
 	@echo "Model files generated: m.model and m.vocab"
 
+tokenizer: $(TOKENIZER_TARGET)
+	./$(TOKENIZER_TARGET)
+	@echo "Tokenizer model generated: m.model"
+
 # Clean build artifacts
 clean:
-	rm -f $(TARGET) m.model m.vocab
+	rm -f $(TARGET) m.model m.vocab $(TOKENIZER_TARGET)
 
 # Show what files will be generated
 info:
@@ -34,6 +45,7 @@ info:
 	@echo "Usage:"
 	@echo "  make          # Compile the training program"
 	@echo "  make train # Compile and run training"
+	@echo "  make tokenizer # Compile and run tokenizer"
 	@echo "  make clean    # Remove generated files"
 
 .PHONY: all train-model clean info 
