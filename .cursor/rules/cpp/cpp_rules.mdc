@@ -1,0 +1,228 @@
+---
+description: USE THIS ANYTIME YOU HAVE TO CODE OR REVIEW C++ CODE
+globs: 
+alwaysApply: false
+---
+# C++ Rules for FrugaLM
+
+## Core Principles
+- **Security First**: Prevent undefined behavior, buffer overflows, and memory vulnerabilities
+- **Performance Aware**: Write efficient code that respects computational constraints
+- **Modern C++**: Use C++17/20 features when they improve code quality
+- **Minimal Dependencies**: Align with FrugaLM's philosophy of essential libraries only
+
+## Memory Management
+
+### RAII (Resource Acquisition Is Initialization)
+- **ALWAYS** use RAII for resource management
+- **PREFER** smart pointers over raw pointers for ownership
+- **USE** `std::unique_ptr` for single ownership
+- **USE** `std::shared_ptr` only when shared ownership is actually needed
+- **AVOID** `new` and `delete` in favor of smart pointers and containers
+
+```cpp
+// GOOD
+auto buffer = std::make_unique<float[]>(size);
+std::vector<int> data(capacity);
+
+// AVOID
+float* buffer = new float[size];  // Manual memory management
+```
+
+### Smart Pointer Guidelines
+- **PREFER** `std::make_unique` and `std::make_shared` over direct construction
+- **USE** `std::weak_ptr` to break circular references
+- **PASS** raw pointers for non-owning parameters
+- **RETURN** smart pointers when transferring ownership
+
+## Security Practices
+
+### Buffer Safety
+- **ALWAYS** validate array bounds and buffer sizes
+- **USE** `std::array` or `std::vector` instead of C-style arrays
+- **PREFER** range-based algorithms over manual indexing
+- **CHECK** input parameters for null pointers and valid ranges
+
+```cpp
+// GOOD
+void process_data(const std::vector<float>& data) {
+    if (data.empty()) return;
+    
+    for (const auto& value : data) {
+        // Process value safely
+    }
+}
+
+// RISKY
+void process_data(const float* data, size_t size) {
+    for (size_t i = 0; i < size; ++i) {  // No null check
+        // Direct pointer access
+    }
+}
+```
+
+### Integer Safety
+- **USE** appropriate integer types (`size_t` for sizes, `ptrdiff_t` for differences)
+- **CHECK** for integer overflow in arithmetic operations
+- **AVOID** signed/unsigned comparison warnings
+- **USE** `std::numeric_limits` for bounds checking
+
+### Input Validation
+- **VALIDATE** all external inputs (file data, network data, user input)
+- **CHECK** file operations for success before proceeding
+- **HANDLE** error conditions explicitly, don't ignore return codes
+- **USE** exceptions or error codes consistently throughout the project
+
+## Performance Guidelines
+
+### Efficient Data Structures
+- **CHOOSE** appropriate containers for access patterns
+- **USE** `std::vector` as default container choice
+- **PREFER** `std::array` for fixed-size collections
+- **USE** `std::unordered_map` for hash-based lookups
+- **RESERVE** vector capacity when final size is known
+
+```cpp
+// GOOD
+std::vector<Token> tokens;
+tokens.reserve(estimated_count);  // Avoid reallocations
+
+// GOOD
+std::array<float, 4> weights = {0.1f, 0.2f, 0.3f, 0.4f};
+```
+
+### Move Semantics
+- **IMPLEMENT** move constructors and assignment operators for heavy objects
+- **USE** `std::move` when transferring ownership
+- **RETURN** by value and rely on move semantics or RVO
+- **PASS** expensive objects by const reference
+
+```cpp
+// GOOD
+class Matrix {
+    std::vector<float> data_;
+public:
+    Matrix(Matrix&& other) noexcept : data_(std::move(other.data_)) {}
+    Matrix& operator=(Matrix&& other) noexcept {
+        data_ = std::move(other.data_);
+        return *this;
+    }
+};
+```
+
+### Algorithm Efficiency
+- **PREFER** STL algorithms over hand-written loops
+- **USE** parallel algorithms when beneficial (`std::execution::par`)
+- **CONSIDER** cache locality in data layout
+- **PROFILE** before optimizing - measure actual performance impact
+
+## Modern C++ Idioms
+
+### Type Safety
+- **USE** `auto` for complex type names and iterators
+- **PREFER** `enum class` over traditional enums
+- **USE** `constexpr` for compile-time computations
+- **AVOID** C-style casts, use static_cast, dynamic_cast explicitly
+
+```cpp
+// GOOD
+enum class TokenType { Word, Number, Punctuation };
+constexpr size_t MAX_SEQUENCE_LENGTH = 512;
+auto result = static_cast<float>(count) / total;
+```
+
+### Function Design
+- **USE** `const` for parameters that shouldn't be modified
+- **MARK** functions `noexcept` when they cannot throw
+- **PREFER** function objects or lambdas over function pointers
+- **USE** trailing return types for complex generic functions
+
+```cpp
+// GOOD
+auto tokenize(const std::string& text) -> std::vector<Token>;
+void process_tokens(const std::vector<Token>& tokens) noexcept;
+```
+
+### Error Handling
+- **USE** exceptions for exceptional conditions, not control flow
+- **PROVIDE** strong exception safety guarantees when possible
+- **USE** RAII to ensure cleanup in exception scenarios
+- **CONSIDER** `std::optional` for operations that may fail
+
+## Code Organization
+
+### Header Guidelines
+- **USE** header guards or `#pragma once`
+- **MINIMIZE** includes in headers, prefer forward declarations
+- **SEPARATE** interface from implementation
+- **INCLUDE** only what you use
+
+### Naming Conventions
+- **USE** snake_case for variables and functions
+- **USE** PascalCase for classes and types
+- **USE** ALL_CAPS for constants and macros
+- **PREFIX** private members with underscore suffix
+
+```cpp
+class TokenProcessor {
+private:
+    std::vector<Token> tokens_;
+    size_t current_position_;
+    
+public:
+    void process_sequence(const std::string& input);
+    std::optional<Token> get_next_token() const noexcept;
+};
+```
+
+### Documentation
+- **DOCUMENT** public interfaces with clear comments
+- **EXPLAIN** complex algorithms and non-obvious optimizations
+- **SPECIFY** preconditions and postconditions for functions
+- **AVOID** comments that just repeat the code
+
+## FrugaLM-Specific Guidelines
+
+### Minimal Dependencies
+- **JUSTIFY** any new dependency additions
+- **PREFER** standard library solutions over external libraries
+- **CONSIDER** header-only libraries when external dependencies are needed
+- **AVOID** heavy frameworks that conflict with the minimal approach
+
+### Performance Considerations
+- **OPTIMIZE** for common use cases (tokenization, matrix operations)
+- **CONSIDER** memory usage in large model contexts
+- **PROFILE** critical paths with realistic data
+- **BALANCE** code complexity with performance gains
+
+### Numerical Stability
+- **BE** aware of floating-point precision issues
+- **USE** appropriate data types for numerical computations
+- **CONSIDER** numerical stability in algorithm design
+- **TEST** with edge cases and boundary values
+
+## What to Avoid
+
+### Anti-Patterns
+- **AVOID** premature optimization without profiling
+- **DON'T** use raw pointers for ownership
+- **AVOID** deep inheritance hierarchies
+- **DON'T** ignore compiler warnings
+- **AVOID** macros when templates or constexpr can be used
+- **DON'T** use `using namespace std` in headers
+
+### Security Anti-Patterns
+- **NEVER** assume input data is valid
+- **DON'T** ignore return values from system calls
+- **AVOID** buffer overruns in string operations
+- **DON'T** use deprecated or unsafe functions (`strcpy`, `sprintf`)
+
+## Code Review Focus Areas
+
+When reviewing C++ code, prioritize:
+1. **Memory safety** - RAII, smart pointers, bounds checking
+2. **Performance implications** - unnecessary copies, algorithm efficiency
+3. **Security vulnerabilities** - input validation, buffer safety
+4. **Exception safety** - resource cleanup, strong guarantees
+5. **Modern C++ usage** - appropriate use of new language features
+

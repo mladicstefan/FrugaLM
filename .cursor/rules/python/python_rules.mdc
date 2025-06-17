@@ -1,0 +1,401 @@
+---
+description: USE THIS ANYTIME YOU HAVE TO CODE OR REVIEW PYTHON CODE
+globs: 
+alwaysApply: false
+---
+# Python Rules for FrugaLM
+
+## Core Principles
+- **Security First**: Validate inputs, prevent injection attacks, handle data safely
+- **Performance Aware**: Write efficient code that scales with large datasets
+- **Pythonic**: Follow established Python idioms and conventions
+- **Minimal Dependencies**: Align with FrugaLM's philosophy of essential libraries only
+
+## Security Practices
+
+### Input Validation
+- **ALWAYS** validate external inputs (files, network data, user input)
+- **SANITIZE** data before processing or storage
+- **USE** type hints to catch errors early
+- **VALIDATE** file paths to prevent directory traversal attacks
+
+```python
+# GOOD
+def load_model_weights(file_path: Path) -> Dict[str, np.ndarray]:
+    if not file_path.exists():
+        raise FileNotFoundError(f"Model file not found: {file_path}")
+    
+    # Validate file extension and size
+    if file_path.suffix not in {'.pkl', '.npz', '.safetensors'}:
+        raise ValueError(f"Unsupported file format: {file_path.suffix}")
+    
+    return load_weights(file_path)
+
+# RISKY
+def load_model_weights(file_path):
+    return pickle.load(open(file_path, 'rb'))  # No validation
+```
+
+### Safe Data Handling
+- **AVOID** `pickle` for untrusted data, prefer JSON or safe formats
+- **USE** `pathlib.Path` instead of string manipulation for file paths
+- **VALIDATE** data types and ranges before processing
+- **HANDLE** encoding issues explicitly when reading text files
+
+```python
+# GOOD
+def read_training_data(data_path: Path, encoding: str = 'utf-8') -> List[str]:
+    try:
+        with data_path.open('r', encoding=encoding) as f:
+            return [line.strip() for line in f if line.strip()]
+    except UnicodeDecodeError as e:
+        raise ValueError(f"Encoding error in {data_path}: {e}")
+
+# SAFER: Use safetensors or numpy formats instead of pickle
+def save_model_state(model_data: Dict[str, np.ndarray], path: Path) -> None:
+    np.savez_compressed(path, **model_data)
+```
+
+### Error Handling
+- **USE** specific exception types, not bare `except:`
+- **LOG** errors with appropriate detail levels
+- **PROVIDE** meaningful error messages with context
+- **FAIL** fast when detecting invalid states
+
+## Performance Guidelines
+
+### Efficient Data Structures
+- **USE** appropriate data structures for access patterns
+- **PREFER** `collections.deque` for queue operations
+- **USE** `set` for membership testing
+- **CHOOSE** `dict` for key-based lookups
+- **USE** `numpy` arrays for numerical computations
+
+```python
+# GOOD
+from collections import deque, defaultdict, Counter
+
+# Efficient token counting
+token_counts = Counter(tokens)
+
+# Fast membership testing
+valid_tokens = set(vocabulary)
+if token in valid_tokens:
+    process_token(token)
+
+# Efficient queue for BFS/processing
+processing_queue = deque(initial_items)
+```
+
+### Memory Efficiency
+- **USE** generators for large datasets
+- **IMPLEMENT** `__slots__` for classes with many instances
+- **PREFER** iterators over creating large lists
+- **CONSIDER** memory-mapped files for large datasets
+
+```python
+# GOOD: Generator for large files
+def read_training_samples(file_path: Path) -> Iterator[str]:
+    with file_path.open('r') as f:
+        for line in f:
+            yield line.strip()
+
+# GOOD: Slots for memory efficiency
+class Token:
+    __slots__ = ['text', 'id', 'frequency']
+    
+    def __init__(self, text: str, id: int, frequency: int = 0):
+        self.text = text
+        self.id = id
+        self.frequency = frequency
+```
+
+### Computational Efficiency
+- **USE** list comprehensions for simple transformations
+- **PREFER** built-in functions (`sum`, `max`, `min`) over loops
+- **USE** `numpy` vectorized operations for numerical work
+- **PROFILE** critical paths with realistic data sizes
+
+```python
+# GOOD: Vectorized operations
+import numpy as np
+
+def compute_attention_weights(queries: np.ndarray, keys: np.ndarray) -> np.ndarray:
+    # Efficient matrix operations
+    scores = np.dot(queries, keys.T)
+    return softmax(scores, axis=-1)
+
+# GOOD: List comprehension
+processed_tokens = [preprocess(token) for token in tokens if is_valid(token)]
+```
+
+## Python Idioms and Best Practices
+
+### Code Style
+- **FOLLOW** PEP 8 for code formatting
+- **USE** meaningful variable and function names
+- **KEEP** functions focused and small
+- **PREFER** explicit over implicit
+
+```python
+# GOOD
+def tokenize_text(text: str, max_length: int = 512) -> List[Token]:
+    """Tokenize input text into a list of tokens.
+    
+    Args:
+        text: Input text to tokenize
+        max_length: Maximum number of tokens to return
+        
+    Returns:
+        List of Token objects, truncated to max_length
+    """
+    tokens = self.tokenizer.encode(text)
+    return tokens[:max_length]
+```
+
+### Type Hints
+- **USE** type hints for function parameters and return values
+- **IMPORT** types from `typing` module when needed
+- **BE** specific with container types (`List[str]`, not just `list`)
+- **USE** `Optional` for values that can be None
+
+```python
+from typing import List, Dict, Optional, Union, Iterator
+from pathlib import Path
+
+def build_vocabulary(
+    texts: Iterator[str], 
+    min_frequency: int = 2,
+    max_vocab_size: Optional[int] = None
+) -> Dict[str, int]:
+    """Build vocabulary from text iterator."""
+    # Implementation
+    pass
+```
+
+### Context Managers
+- **USE** context managers for resource management
+- **IMPLEMENT** `__enter__` and `__exit__` for custom resources
+- **USE** `contextlib` for simple context managers
+- **ENSURE** proper cleanup of files, connections, and locks
+
+```python
+# GOOD
+from contextlib import contextmanager
+
+@contextmanager
+def model_inference_mode(model):
+    """Context manager for model inference."""
+    model.eval()
+    try:
+        yield model
+    finally:
+        model.train()
+
+# Usage
+with model_inference_mode(model) as inference_model:
+    predictions = inference_model(batch)
+```
+
+## Object-Oriented Design
+
+### Class Design
+- **FOLLOW** single responsibility principle
+- **USE** `@property` for computed attributes
+- **IMPLEMENT** `__repr__` for debugging
+- **USE** `@dataclass` for simple data containers
+
+```python
+from dataclasses import dataclass
+from typing import Optional
+
+@dataclass
+class ModelConfig:
+    """Configuration for the language model."""
+    vocab_size: int
+    hidden_size: int
+    num_layers: int
+    learning_rate: float = 0.001
+    dropout_rate: float = 0.1
+    
+    def __post_init__(self):
+        if self.vocab_size <= 0:
+            raise ValueError("vocab_size must be positive")
+
+class Tokenizer:
+    def __init__(self, vocab_path: Path):
+        self._vocab = self._load_vocab(vocab_path)
+        self._reverse_vocab = {v: k for k, v in self._vocab.items()}
+    
+    @property
+    def vocab_size(self) -> int:
+        return len(self._vocab)
+    
+    def __repr__(self) -> str:
+        return f"Tokenizer(vocab_size={self.vocab_size})"
+```
+
+### Inheritance and Composition
+- **PREFER** composition over inheritance
+- **USE** abstract base classes for interfaces
+- **IMPLEMENT** `__str__` and `__repr__` appropriately
+- **USE** `super()` correctly in inheritance hierarchies
+
+## Error Handling and Logging
+
+### Exception Handling
+- **CATCH** specific exceptions, not `Exception`
+- **PROVIDE** informative error messages
+- **USE** finally blocks for cleanup
+- **CONSIDER** custom exception classes for domain-specific errors
+
+```python
+class TokenizationError(Exception):
+    """Raised when tokenization fails."""
+    pass
+
+def tokenize_with_fallback(text: str) -> List[Token]:
+    try:
+        return primary_tokenizer.tokenize(text)
+    except TokenizationError as e:
+        logger.warning(f"Primary tokenization failed: {e}, using fallback")
+        return fallback_tokenizer.tokenize(text)
+    except Exception as e:
+        logger.error(f"Unexpected error in tokenization: {e}")
+        raise
+```
+
+### Logging
+- **USE** the `logging` module, not `print` statements
+- **SET** appropriate log levels
+- **INCLUDE** relevant context in log messages
+- **CONFIGURE** logging at application startup
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+def train_model(config: ModelConfig, data_path: Path) -> None:
+    logger.info(f"Starting training with config: {config}")
+    
+    try:
+        model = create_model(config)
+        logger.info(f"Created model with {model.parameter_count} parameters")
+        
+        # Training loop
+        for epoch in range(config.num_epochs):
+            loss = train_epoch(model, data_path)
+            logger.info(f"Epoch {epoch}: loss={loss:.4f}")
+            
+    except Exception as e:
+        logger.error(f"Training failed: {e}", exc_info=True)
+        raise
+```
+
+## FrugaLM-Specific Guidelines
+
+### Minimal Dependencies
+- **JUSTIFY** new dependencies carefully
+- **PREFER** standard library solutions
+- **USE** numpy for numerical computations
+- **CONSIDER** pure Python implementations for better understanding
+
+### Data Processing
+- **HANDLE** large datasets efficiently with generators
+- **IMPLEMENT** batching for memory management
+- **USE** appropriate data formats (JSON, NPZ, HDF5)
+- **VALIDATE** data consistency and format
+
+```python
+def batch_data(
+    data: Iterator[Any], 
+    batch_size: int
+) -> Iterator[List[Any]]:
+    """Create batches from data iterator."""
+    batch = []
+    for item in data:
+        batch.append(item)
+        if len(batch) == batch_size:
+            yield batch
+            batch = []
+    
+    if batch:  # Don't forget the last partial batch
+        yield batch
+```
+
+### Numerical Stability
+- **BE** aware of floating-point precision
+- **USE** appropriate dtypes for different data
+- **HANDLE** edge cases in mathematical operations
+- **TEST** with boundary values
+
+## Testing and Documentation
+
+### Testing Guidelines
+- **WRITE** unit tests for core functionality
+- **USE** `pytest` for testing framework
+- **TEST** edge cases and error conditions
+- **MOCK** external dependencies in tests
+
+### Documentation
+- **WRITE** clear docstrings for public functions
+- **FOLLOW** Google or NumPy docstring style
+- **DOCUMENT** complex algorithms and non-obvious code
+- **INCLUDE** examples in docstrings when helpful
+
+```python
+def compute_perplexity(logits: np.ndarray, targets: np.ndarray) -> float:
+    """Compute perplexity from model logits and target tokens.
+    
+    Args:
+        logits: Model output logits with shape (batch_size, vocab_size)
+        targets: Target token ids with shape (batch_size,)
+        
+    Returns:
+        Perplexity score as a float
+        
+    Example:
+        >>> logits = np.random.randn(32, 1000)
+        >>> targets = np.random.randint(0, 1000, 32)
+        >>> perplexity = compute_perplexity(logits, targets)
+        >>> print(f"Perplexity: {perplexity:.2f}")
+    """
+    # Implementation
+    pass
+```
+
+## What to Avoid
+
+### Anti-Patterns
+- **AVOID** global variables, use dependency injection
+- **DON'T** use mutable default arguments
+- **AVOID** deeply nested code, use early returns
+- **DON'T** ignore return values from important operations
+- **AVOID** string concatenation in loops, use join()
+
+### Performance Anti-Patterns
+- **DON'T** create unnecessary intermediate lists
+- **AVOID** repeated function calls in loops
+- **DON'T** use `+=` for string concatenation in loops
+- **AVOID** unnecessary lambda functions
+
+```python
+# AVOID
+result = ""
+for item in items:
+    result += str(item)  # Inefficient string concatenation
+
+# GOOD
+result = "".join(str(item) for item in items)
+```
+
+## Code Review Focus Areas
+
+When reviewing Python code, prioritize:
+1. **Security vulnerabilities** - input validation, safe data handling
+2. **Performance issues** - inefficient algorithms, memory usage
+3. **Error handling** - proper exception handling and logging
+4. **Code clarity** - readable, maintainable, well-documented code
+5. **Type safety** - proper use of type hints and validation
+
