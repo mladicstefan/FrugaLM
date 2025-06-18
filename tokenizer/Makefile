@@ -30,7 +30,7 @@ train: $(TARGET)
 
 tokenizer: $(TOKENIZER_TARGET)
 	./$(TOKENIZER_TARGET)
-	@echo "Tokenizer model generated: m.model"
+	@echo "Input Tokenized"
 
 # Clean build artifacts
 clean:
