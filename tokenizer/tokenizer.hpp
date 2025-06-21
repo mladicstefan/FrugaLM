@@ -3,8 +3,6 @@
 #include <sentencepiece_processor.h>
 #include <vector>
 #include <string>
-#include <mutex>
-#include <memory>
 #include <future>
 
 class Tokenizer {
