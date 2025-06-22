@@ -4,6 +4,7 @@
 #include <fstream>
 #include <ios>
 #include <future>
+#include <chrono>
 
 Tokenizer::Tokenizer(const std::string& model_path){
   const auto status = processor_.Load(model_path);
@@ -55,24 +56,21 @@ std::future<std::string> Tokenizer::decode_future(const std::vector<int>& ids) c
 int main() {
   
   Tokenizer tokenizer("m.model");
-  std::vector<int> ids = tokenizer.encode("Hello, world!");
+  auto start = std::chrono::high_resolution_clock::now();
+  std::string text = tokenizer.readFile("../data/txt1.txt");
+  std::vector<int> ids = tokenizer.encode(text);
   std::cout << "Encoded: ";
+  int count = 0;
   for(int id : ids){
-    std::cout << id << " ";
+    //std::cout << id << " ";
+    ++count;
   }
   std::cout << std::endl;
-  std::string text = tokenizer.decode(ids);
-  std::cout << text << std::endl;
+
+  auto end = std::chrono::high_resolution_clock::now();
+  auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+  std::cout << "Encoded: " << count << " tokens" << std::endl;
+  std::cout << elapsed << " ms" << std::endl;
   return 0;
 
-  //TODO: implement batch encoding and decoding
-  // std::vector<std::future<std::vector<int>>> e_futures;
-  // for(const auto& file_path : file_paths){
-  //   e_futures.push_back(tokenizer.encode_future(file_path));
-  // }
-
-  // std::vector<std::future<std::string>> d_futures;
-  // for(const auto& future : e_futures){
-  //   d_futures.push_back(tokenizer.decode_future(future.get()));
-  // }
 } 
