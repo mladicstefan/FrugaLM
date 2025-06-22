@@ -1,8 +1,9 @@
 #include "tokenizer.hpp"
 #include <stdexcept>
 #include <iostream>
-#include <unistd.h>
-
+#include <fstream>
+#include <ios>
+#include <future>
 
 Tokenizer::Tokenizer(const std::string& model_path){
   const auto status = processor_.Load(model_path);
@@ -22,6 +23,21 @@ std::string Tokenizer::decode(const std::vector<int>& ids) const{
   std::string result;
   processor_.Decode(ids, &result);
   return result;
+}
+
+std::string Tokenizer::readFile(const std::string& file_path) const{
+  std::ifstream file(file_path, std::ios::binary);
+  if (!file.is_open()){
+    throw std::runtime_error("Cannot open file" + file_path);
+  }
+  
+  file.seekg(0, std::ios::end);
+  std::streamsize size = file.tellg();
+  file.seekg(0, std::ios::beg);
+
+  std::string buffer(size, '\0');
+  file.read(&buffer[0], size);
+  return buffer;
 }
 
 std::future<std::vector<int>> Tokenizer::encode_future(const std::string& text) const{

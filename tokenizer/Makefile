@@ -21,7 +21,7 @@ $(TARGET): $(SOURCE)
 
 # Compile the tokenizer program
 $(TOKENIZER_TARGET): $(TOKENIZER_SOURCE) tokenizer.hpp
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TOKENIZER_TARGET) $(TOKENIZER_SOURCE) $(LIBDIR) $(LIBS)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TOKENIZER_TARGET) $(TOKENIZER_SOURCE) $(LIBDIR) $(LIBS) 
 
 # Run the training to generate model files
 train: $(TARGET)
