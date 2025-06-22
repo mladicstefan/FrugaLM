@@ -1,12 +1,12 @@
 # Makefile for SentencePiece Training
 CXX = g++
 CXXFLAGS = -std=c++17 -O2 -Wall -Wextra
-INCLUDES = -I../dependencies/sentencepiece/src -I../dependencies/sentencepiece/third_party/protobuf-lite -I../extern/pybind11/include $(shell python3 -m pybind11 --includes)
-LIBDIR = -L../dependencies/sentencepiece/build/src
+INCLUDES = -I$(CONDA_PREFIX)/include -I../extern/pybind11/include $(shell python3 -m pybind11 --includes)
+LIBDIR = -L$(CONDA_PREFIX)/lib
 LIBS = -lsentencepiece -lsentencepiece_train -pthread
 
-# Python bindings flags (following pybind11 docs)
-PYBIND_CXXFLAGS = -O3 -Wall -shared -std=c++17 -fPIC
+# Python bindings flags (following pybind11 docs) - with static libstdc++ linking
+PYBIND_CXXFLAGS = -O3 -Wall -shared -std=c++17 -fPIC -static-libgcc -static-libstdc++
 PYBIND_LIBS = -lsentencepiece -lsentencepiece_train -pthread
 
 # Target executable
@@ -32,7 +32,7 @@ $(TOKENIZER_TARGET): $(TOKENIZER_SOURCE) tokenizer.hpp
 
 # Compile Python bindings (following pybind11 manual build recommendations)
 $(TOKENIZER_BINDINGS_TARGET): $(TOKENIZER_BINDINGS_SOURCE) tokenizer.hpp tokenizer.cpp
-	$(CXX) $(PYBIND_CXXFLAGS) $(shell python3 -m pybind11 --includes) -I../dependencies/sentencepiece/src -I../dependencies/sentencepiece/third_party/protobuf-lite -o $(TOKENIZER_BINDINGS_TARGET) $(TOKENIZER_BINDINGS_SOURCE) tokenizer.cpp $(LIBDIR) $(PYBIND_LIBS)
+	$(CXX) $(PYBIND_CXXFLAGS) $(shell python3 -m pybind11 --includes) -I$(CONDA_PREFIX)/include -o $(TOKENIZER_BINDINGS_TARGET) $(TOKENIZER_BINDINGS_SOURCE) tokenizer.cpp $(LIBDIR) $(PYBIND_LIBS)
 
 bindings: $(TOKENIZER_BINDINGS_TARGET)
 	@echo "Python bindings created: $(TOKENIZER_BINDINGS_TARGET)"
