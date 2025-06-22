@@ -1,9 +1,13 @@
 # Makefile for SentencePiece Training
 CXX = g++
 CXXFLAGS = -std=c++17 -O2 -Wall -Wextra
-INCLUDES = -I../dependencies/sentencepiece/src -I../dependencies/sentencepiece/third_party/protobuf-lite
-LIBDIR = -L../dependencies/sentencepiece/build
+INCLUDES = -I../dependencies/sentencepiece/src -I../dependencies/sentencepiece/third_party/protobuf-lite -I../extern/pybind11/include $(shell python3 -m pybind11 --includes)
+LIBDIR = -L../dependencies/sentencepiece/build/src
 LIBS = -lsentencepiece -lsentencepiece_train -pthread
+
+# Python bindings flags (following pybind11 docs)
+PYBIND_CXXFLAGS = -O3 -Wall -shared -std=c++17 -fPIC
+PYBIND_LIBS = -lsentencepiece -lsentencepiece_train -pthread
 
 # Target executable
 TARGET = trainer.exe
@@ -11,6 +15,9 @@ SOURCE = train.cpp
 TOKENIZER_SOURCE = tokenizer.cpp
 TOKENIZER_TARGET = tokenizer.exe
 
+# Python bindings
+TOKENIZER_BINDINGS_SOURCE = py_bindings.cpp
+TOKENIZER_BINDINGS_TARGET = tokenizer$(shell python3-config --extension-suffix)
 
 # Default target
 all: $(TARGET)
@@ -23,6 +30,13 @@ $(TARGET): $(SOURCE)
 $(TOKENIZER_TARGET): $(TOKENIZER_SOURCE) tokenizer.hpp
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -o $(TOKENIZER_TARGET) $(TOKENIZER_SOURCE) $(LIBDIR) $(LIBS) 
 
+# Compile Python bindings (following pybind11 manual build recommendations)
+$(TOKENIZER_BINDINGS_TARGET): $(TOKENIZER_BINDINGS_SOURCE) tokenizer.hpp tokenizer.cpp
+	$(CXX) $(PYBIND_CXXFLAGS) $(shell python3 -m pybind11 --includes) -I../dependencies/sentencepiece/src -I../dependencies/sentencepiece/third_party/protobuf-lite -o $(TOKENIZER_BINDINGS_TARGET) $(TOKENIZER_BINDINGS_SOURCE) tokenizer.cpp $(LIBDIR) $(PYBIND_LIBS)
+
+bindings: $(TOKENIZER_BINDINGS_TARGET)
+	@echo "Python bindings created: $(TOKENIZER_BINDINGS_TARGET)"
+
 # Run the training to generate model files
 train: $(TARGET)
 	./$(TARGET)
@@ -34,7 +48,7 @@ tokenizer: $(TOKENIZER_TARGET)
 
 # Clean build artifacts
 clean:
-	rm -f $(TARGET) m.model m.vocab $(TOKENIZER_TARGET)
+	rm -f $(TARGET) m.model m.vocab $(TOKENIZER_TARGET) $(TOKENIZER_BINDINGS_TARGET)
 
 # Show what files will be generated
 info:
@@ -46,6 +60,7 @@ info:
 	@echo "  make          # Compile the training program"
 	@echo "  make train # Compile and run training"
 	@echo "  make tokenizer # Compile and run tokenizer"
+	@echo "  make bindings # Compile Python bindings"
 	@echo "  make clean    # Remove generated files"
 
-.PHONY: all train-model clean info 
+.PHONY: all train tokenizer bindings clean info
